@@ -42,7 +42,9 @@ endif
 
 CFLAGS += $(CSTD) $(WARN) $(INC) $(OPT) $(SANFLAGS)
 
-TAG       := $(BUILD)-$(CHACHA8_IMPL)$(TAG_SAN)
+# Der Compiler gehoert ins Verzeichnis, sonst verwendet z. B. ein Lauf mit
+# CC=clang oder CC=aarch64-linux-gnu-gcc Objektdateien eines anderen Compilers.
+TAG       := $(notdir $(firstword $(CC)))-$(BUILD)-$(CHACHA8_IMPL)$(TAG_SAN)
 BUILD_DIR := build/$(TAG)
 OBJ_DIR   := $(BUILD_DIR)/obj
 BIN_DIR   := $(BUILD_DIR)/bin
@@ -70,10 +72,16 @@ ifneq ($(MAKECMDGOALS),clean)
 endif
 
 # Die Fremdquellen erzeugen mit -Wextra Warnungen, die den Code nicht betreffen
-# (Vorzeichenvergleich, ungenutzter Parameter, maybe-uninitialized). Sie werden
-# nur fuer diese Dateien abgeschaltet, nicht fuer die eigenen Quellen.
+# (Vorzeichenvergleich, ungenutzter Parameter, maybe-uninitialized,
+# Zeichenkette ohne Nullbyte bei sigma/tau). Sie werden nur fuer diese Dateien
+# abgeschaltet, nicht fuer die eigenen Quellen. Compilerspezifische Optionen
+# werden nur gesetzt, wenn der Compiler die zugehoerige Warnung kennt.
+cc_wno = $(shell $(CC) -Werror -W$(1) -E -x c /dev/null >/dev/null 2>&1 && echo -Wno-$(1))
+
 VENDOR_INC := -Ithird_party/chacha8
-VENDOR_WNO := -Wno-sign-compare -Wno-unused-parameter -Wno-maybe-uninitialized
+VENDOR_WNO := -Wno-sign-compare -Wno-unused-parameter \
+              $(call cc_wno,maybe-uninitialized) \
+              $(call cc_wno,unterminated-string-initialization)
 
 OBJS := $(patsubst src/%.c,$(OBJ_DIR)/%.o,$(SRCS)) \
         $(patsubst third_party/%.c,$(OBJ_DIR)/third_party/%.o,$(THIRD_SRCS))
@@ -93,6 +101,10 @@ $(LIB): $(OBJS)
 	@mkdir -p $(dir $@)
 	rm -f $@
 	$(AR) rcs $@ $^
+
+# Der ChaCha8-Adapter bindet ecrypt-sync.h ein und braucht deshalb den
+# Include-Pfad der Fremdquellen (ohne deren Warnungsausnahmen).
+$(OBJ_DIR)/chacha8.o: CFLAGS += $(VENDOR_INC)
 
 $(OBJ_DIR)/%.o: src/%.c
 	@mkdir -p $(dir $@)

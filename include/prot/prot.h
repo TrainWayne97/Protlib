@@ -9,7 +9,11 @@ enum {
     PROT_OK              =  0,
     PROT_ERR_INVALID_ARG = -1,
     PROT_ERR_UNSUPPORTED = -2,
-    PROT_ERR_NOMEM       = -3
+    PROT_ERR_NOMEM       = -3,
+    /* Schlüsselstrom des Kontexts erschöpft (ChaCha8: 2^64 Blöcke bzw.
+     * 2^70 Byte pro Schlüssel und Nonce). Es wurden keine Daten verändert;
+     * ein neuer Kontext mit neuer Nonce ist nötig. */
+    PROT_ERR_LIMIT       = -4
 };
 
 typedef enum {
@@ -39,8 +43,8 @@ typedef struct {
 
     /* AES und ChaCha/8 */
     const uint8_t *key;
-    size_t         key_len;     /* AES: variierbar, ChaCha/8: festlegen */
-    const uint8_t *iv;          /* Nonce bzw. IV */
+    size_t         key_len;     /* AES: variierbar, ChaCha8: 16 oder 32 Byte */
+    const uint8_t *iv;          /* Nonce bzw. IV; ChaCha8: 8 Byte */
     size_t         iv_len;
 
     /* LFSR-Scrambler */
@@ -55,7 +59,8 @@ typedef struct prot_ctx prot_ctx;   /* undurchsichtig */
 int  prot_ctx_create(const prot_config *cfg, prot_ctx **out);
 
 /* Verarbeitet len Bytes. Der Zustand läuft über Aufrufe hinweg weiter.
- * in == out ist erlaubt, teilweise Überlappung ist unzulässig. */
+ * in == out ist erlaubt, teilweise Überlappung ist unzulässig.
+ * len == 0 ist erlaubt; in und out dürfen dann NULL sein. */
 int  prot_process(prot_ctx *ctx, const uint8_t *in, uint8_t *out, size_t len);
 
 void prot_ctx_destroy(prot_ctx *ctx);
