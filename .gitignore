@@ -1,0 +1,18 @@
+# Build-Ausgabe (Makefile legt alles unter build/ ab)
+build/
+
+# Falls jemand außerhalb von make übersetzt
+*.o
+*.a
+*.d
+*.so
+
+# Editor- und IDE-Dateien
+*.swp
+*~
+.vscode/
+.idea/
+
+# Absturzabbilder
+core
+core.*
