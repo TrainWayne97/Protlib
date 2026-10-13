@@ -44,8 +44,8 @@ typedef struct {
     size_t         iv_len;
 
     /* LFSR-Scrambler */
-    uint64_t       lfsr_seed;
-    uint64_t       lfsr_poly;   /* OFFEN: Registerbreite und Darstellung */
+    uint32_t       lfsr_seed;
+    uint32_t       lfsr_poly;   /* OFFEN: Registerbreite und Darstellung */
 
     /* OFFEN: AES-Betriebsmodus, im Quelldokument nicht festgelegt */
 } prot_config;
